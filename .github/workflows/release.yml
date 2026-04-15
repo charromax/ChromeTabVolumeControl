@@ -75,17 +75,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Package extension
         run: |
           zip -r tab-volume-control-${{ github.ref_name }}.zip \
             manifest.json popup.html popup.css popup.js content.js icons/
 
       - name: Publish to Chrome Web Store
-        uses: nicolo-ribaudo/chrome-webstore-upload-action@v2
-        with:
-          extension-id: ${{ secrets.CWS_EXTENSION_ID }}
-          client-id: ${{ secrets.CWS_CLIENT_ID }}
-          client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
-          refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}
-          zip-path: tab-volume-control-${{ github.ref_name }}.zip
-          publish: true
+        env:
+          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          npx chrome-webstore-upload-cli \
+            --source tab-volume-control-${{ github.ref_name }}.zip
