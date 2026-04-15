@@ -17,6 +17,7 @@
  *
  * @param {number} volume  A value between 0.0 (mute) and 1.0 (full).
  */
+// eslint-disable-next-line no-unused-vars
 function setVolumeInTab(volume) {
   document.querySelectorAll("audio, video").forEach((el) => {
     el.volume = Math.max(0, Math.min(1, volume));

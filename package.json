@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Adjust the volume of every audible Chrome tab independently.",
   "private": true,
+  "type": "module",
   "scripts": {
     "lint": "eslint popup.js content.js"
   },
