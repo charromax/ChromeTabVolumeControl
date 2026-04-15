@@ -1,0 +1,180 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 340px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  color: #202124;
+  background: #fff;
+}
+
+header {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+header h1 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a73e8;
+}
+
+main {
+  padding: 8px 0;
+}
+
+/* ---------- Tab rows ---------- */
+
+.tab-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  transition: background 0.15s;
+}
+
+.tab-row:hover {
+  background: #f5f5f5;
+}
+
+.tab-favicon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  object-fit: contain;
+}
+
+.tab-favicon-fallback {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  background: #dadce0;
+  font-size: 10px;
+  color: #5f6368;
+}
+
+.tab-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tab-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: #202124;
+  margin-bottom: 4px;
+}
+
+/* ---------- Slider ---------- */
+
+.tab-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 140px;
+  height: 4px;
+  border-radius: 2px;
+  background: #dadce0;
+  outline: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1a73e8;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: #1a73e8;
+  cursor: pointer;
+}
+
+.volume-label {
+  width: 30px;
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #5f6368;
+}
+
+/* ---------- Empty state ---------- */
+
+#empty-state {
+  padding: 20px 16px;
+  color: #5f6368;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ---------- Solo / Mute ---------- */
+
+/* Make the non-slider part of the row feel clickable. */
+.tab-row {
+  cursor: pointer;
+}
+
+.tab-controls {
+  cursor: default;
+}
+
+.tab-row.soloed {
+  background: #e8f0fe;
+  border-left: 3px solid #1a73e8;
+  padding-left: 11px; /* compensates for the 3px border */
+}
+
+.tab-row.muted {
+  opacity: 0.4;
+}
+
+/* SOLO badge — hidden until .soloed is applied to the row */
+.solo-badge {
+  display: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #1a73e8;
+  border: 1px solid #1a73e8;
+  border-radius: 3px;
+  padding: 1px 4px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.tab-row.soloed .solo-badge {
+  display: inline-block;
+}
+

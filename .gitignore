@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.zip
+
+# ESLint cache
+.eslintcache
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

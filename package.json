@@ -1,0 +1,14 @@
+{
+  "name": "chrome-tab-volume-control",
+  "version": "1.0.0",
+  "description": "Adjust the volume of every audible Chrome tab independently.",
+  "private": true,
+  "scripts": {
+    "lint": "eslint popup.js content.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^16.0.0"
+  }
+}
