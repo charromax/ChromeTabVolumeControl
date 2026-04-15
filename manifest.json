@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tab Volume Control",
   "short_name": "Tab Volume",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Adjust the volume of every audible tab independently.",
   "author": "Manuel Gonzalez",
   "homepage_url": "https://github.com/charromax/ChromeTabVolumeControl",
