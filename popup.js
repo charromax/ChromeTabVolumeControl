@@ -38,19 +38,49 @@ function saveVolume(tabId, volume) {
 
 /**
  * Injected into the target tab. Must be self-contained (no closure refs).
+ *
+ * Sets volume on all current <audio>/<video> elements and installs a
+ * MutationObserver that enforces the same volume on any elements added
+ * dynamically later (e.g. YouTube loading the next video segment).
+ * When volume is restored to 1.0 the observer is disconnected.
+ *
  * @param {number} volume  0.0 – 1.0
  */
-function setVolumeInTab(volume) {
-  document.querySelectorAll("audio, video").forEach((el) => {
-    el.volume = volume;
+function setAndWatchVolume(volume) {
+  const KEY = "__tabVolumeObserver__";
+
+  // Disconnect any previously installed observer.
+  if (window[KEY]) {
+    window[KEY].disconnect();
+    window[KEY] = null;
+  }
+
+  function apply(el) { el.volume = volume; }
+
+  document.querySelectorAll("audio, video").forEach(apply);
+
+  // At full volume there's nothing to enforce — skip the observer.
+  if (volume >= 1.0) return;
+
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches?.("audio, video")) apply(node);
+        node.querySelectorAll?.("audio, video").forEach(apply);
+      }
+    }
   });
+
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  window[KEY] = observer;
 }
 
 async function applyVolumeToTab(tabId, volumePercent) {
   try {
     await chrome.scripting.executeScript({
       target: { tabId, allFrames: true },
-      func: setVolumeInTab,
+      func: setAndWatchVolume,
       args: [volumePercent / 100],
     });
   } catch {

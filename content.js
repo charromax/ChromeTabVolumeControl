@@ -1,10 +1,10 @@
 /**
  * content.js — Tab Volume Control
  *
- * This file is included for completeness and can be used as a
- * persistent content script if needed in the future. The popup
- * currently injects setVolumeInTab directly via chrome.scripting
- * executeScript({ func }) without loading this file.
+ * Standalone reference copy of the volume-enforcement function.
+ * The popup and background service worker inject this logic directly
+ * via chrome.scripting.executeScript({ func }) rather than loading
+ * this file, so changes here must be mirrored in popup.js and background.js.
  *
  * Known limitation: Web Audio API nodes (AudioContext) are not
  * affected — only <audio> and <video> HTML elements are controlled.
@@ -13,13 +13,37 @@
 "use strict";
 
 /**
- * Sets the volume on all <audio> and <video> elements in the page.
+ * Sets volume on all current <audio>/<video> elements and installs a
+ * MutationObserver to enforce the same volume on dynamically added elements.
+ * Disconnects the observer when volume is restored to 1.0.
  *
- * @param {number} volume  A value between 0.0 (mute) and 1.0 (full).
+ * @param {number} volume  0.0 (mute) – 1.0 (full)
  */
 // eslint-disable-next-line no-unused-vars
-function setVolumeInTab(volume) {
-  document.querySelectorAll("audio, video").forEach((el) => {
-    el.volume = Math.max(0, Math.min(1, volume));
+function setAndWatchVolume(volume) {
+  const KEY = "__tabVolumeObserver__";
+
+  if (window[KEY]) {
+    window[KEY].disconnect();
+    window[KEY] = null;
+  }
+
+  function apply(el) { el.volume = Math.max(0, Math.min(1, volume)); }
+
+  document.querySelectorAll("audio, video").forEach(apply);
+
+  if (volume >= 1.0) return;
+
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches?.("audio, video")) apply(node);
+        node.querySelectorAll?.("audio, video").forEach(apply);
+      }
+    }
   });
+
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  window[KEY] = observer;
 }

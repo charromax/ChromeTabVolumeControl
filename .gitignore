@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# OAuth helper — delete after obtaining refresh token
+get-refresh-token.mjs
+
 # Build output
 dist/
 *.zip

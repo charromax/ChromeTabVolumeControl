@@ -39,6 +39,7 @@ jobs:
             popup.html \
             popup.css \
             popup.js \
+            background.js \
             content.js \
             icons/
 

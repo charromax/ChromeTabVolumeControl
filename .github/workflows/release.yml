@@ -34,6 +34,7 @@ jobs:
             popup.html \
             popup.css \
             popup.js \
+            background.js \
             content.js \
             icons/
 
@@ -87,7 +88,7 @@ jobs:
       - name: Package extension
         run: |
           zip -r tab-volume-control-${{ github.ref_name }}.zip \
-            manifest.json popup.html popup.css popup.js content.js icons/
+            manifest.json popup.html popup.css popup.js background.js content.js icons/
 
       - name: Publish to Chrome Web Store
         env:
