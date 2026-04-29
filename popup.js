@@ -118,13 +118,16 @@ async function handleRowClick(clickedTabId) {
   const preSoloVolumes = data.solo_preVolumes ?? {};
 
   if (soloTabId === String(clickedTabId)) {
-    // ── Un-solo: restore all tabs to their pre-solo volumes ──
+    // ── Un-solo: restore ALL tabs that were in the pre-solo snapshot.
+    // Use preSoloVolumes keys directly — muted tabs may no longer be audible
+    // so they won't appear in allTabs, but they still need to be restored.
     await Promise.all(
-      allTabs.map(async (tab) => {
-        const vol = preSoloVolumes[String(tab.id)] ?? DEFAULT_VOLUME;
-        updateTabSlider(tab.id, vol);
-        saveVolume(tab.id, vol);
-        await applyVolumeToTab(tab.id, vol);
+      Object.keys(preSoloVolumes).map(async (tabIdStr) => {
+        const tabId = Number(tabIdStr);
+        const vol = preSoloVolumes[tabIdStr] ?? DEFAULT_VOLUME;
+        updateTabSlider(tabId, vol);
+        saveVolume(tabId, vol);
+        await applyVolumeToTab(tabId, vol);
       })
     );
     await removeSession(["solo_tabId", "solo_preVolumes"]);
@@ -245,6 +248,26 @@ async function init() {
 
   allTabs = tabs ?? [];
 
+  // When solo is active, muted tabs are no longer audible so the query above
+  // misses them. Fetch them explicitly so they remain visible in the popup.
+  const soloTabId = sessionData.solo_tabId ?? null;
+  if (soloTabId) {
+    const preSoloVolumes = sessionData.solo_preVolumes ?? {};
+    const mutedTabIds = Object.keys(preSoloVolumes)
+      .map(Number)
+      .filter((id) => !allTabs.some((t) => t.id === id));
+
+    const mutedTabs = (
+      await Promise.all(
+        mutedTabIds.map((id) =>
+          chrome.tabs.get(id).catch(() => null)
+        )
+      )
+    ).filter(Boolean);
+
+    allTabs = allTabs.concat(mutedTabs);
+  }
+
   const list = document.getElementById("tab-list");
   const emptyState = document.getElementById("empty-state");
 
@@ -253,17 +276,17 @@ async function init() {
     return;
   }
 
-  let soloTabId = sessionData.solo_tabId ?? null;
+  let soloId = sessionData.solo_tabId ?? null;
 
-  // If the soloed tab is no longer audible, clear stale solo state.
-  if (soloTabId && !allTabs.some((t) => String(t.id) === soloTabId)) {
+  // If the soloed tab is no longer present at all, clear stale solo state.
+  if (soloId && !allTabs.some((t) => String(t.id) === soloId)) {
     await removeSession(["solo_tabId", "solo_preVolumes"]);
-    soloTabId = null;
+    soloId = null;
   }
 
   allTabs.forEach((tab) => {
     const saved = sessionData[String(tab.id)];
-    list.appendChild(renderTabRow(tab, saved, soloTabId));
+    list.appendChild(renderTabRow(tab, saved, soloId));
 
     // Re-apply saved volume so the page matches the slider on open.
     const volumeToApply = saved ?? DEFAULT_VOLUME;
