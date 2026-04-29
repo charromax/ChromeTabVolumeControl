@@ -90,11 +90,6 @@ async function applyVolumeToTab(tabId, volumePercent) {
 
 // --- DOM helpers ---
 
-function getSliderVolume(tabId) {
-  const row = document.querySelector(`.tab-row[data-tab-id="${tabId}"]`);
-  return row ? Number(row.querySelector(".volume-slider").value) : DEFAULT_VOLUME;
-}
-
 function updateTabSlider(tabId, volume) {
   const row = document.querySelector(`.tab-row[data-tab-id="${tabId}"]`);
   if (!row) return;
@@ -113,43 +108,40 @@ function updateSoloHighlight(soloTabId) {
 // --- Solo / Un-solo ---
 
 async function handleRowClick(clickedTabId) {
-  const data = await getSession(["solo_tabId", "solo_preVolumes"]);
-  const soloTabId    = data.solo_tabId     ?? null;
-  const preSoloVolumes = data.solo_preVolumes ?? {};
+  const data = await getSession(["solo_tabId", "solo_mutedTabIds"]);
+  const soloTabId      = data.solo_tabId       ?? null;
+  const mutedTabIds    = data.solo_mutedTabIds  ?? [];
 
   if (soloTabId === String(clickedTabId)) {
-    // ── Un-solo: restore ALL tabs that were in the pre-solo snapshot.
-    // Use preSoloVolumes keys directly — muted tabs may no longer be audible
-    // so they won't appear in allTabs, but they still need to be restored.
+    // ── Un-solo: restore all muted tabs to 100% ──
     await Promise.all(
-      Object.keys(preSoloVolumes).map(async (tabIdStr) => {
-        const tabId = Number(tabIdStr);
-        const vol = preSoloVolumes[tabIdStr] ?? DEFAULT_VOLUME;
-        updateTabSlider(tabId, vol);
-        saveVolume(tabId, vol);
-        await applyVolumeToTab(tabId, vol);
+      mutedTabIds.map(async (tabId) => {
+        updateTabSlider(tabId, DEFAULT_VOLUME);
+        saveVolume(tabId, DEFAULT_VOLUME);
+        await applyVolumeToTab(tabId, DEFAULT_VOLUME);
       })
     );
-    await removeSession(["solo_tabId", "solo_preVolumes"]);
+    await removeSession(["solo_tabId", "solo_mutedTabIds"]);
     updateSoloHighlight(null);
   } else {
-    // ── Solo: snapshot current volumes, then mute all other tabs ──
-    const preVolumes = {};
-    allTabs.forEach((tab) => {
-      preVolumes[String(tab.id)] = getSliderVolume(tab.id);
-    });
+    // ── Solo: boost this tab to 100%, mute all others ──
+    updateTabSlider(clickedTabId, DEFAULT_VOLUME);
+    saveVolume(clickedTabId, DEFAULT_VOLUME);
+    await applyVolumeToTab(clickedTabId, DEFAULT_VOLUME);
 
+    const tabsToMute = allTabs.filter((tab) => tab.id !== clickedTabId);
     await Promise.all(
-      allTabs
-        .filter((tab) => tab.id !== clickedTabId)
-        .map(async (tab) => {
-          updateTabSlider(tab.id, 0);
-          saveVolume(tab.id, 0);
-          await applyVolumeToTab(tab.id, 0);
-        })
+      tabsToMute.map(async (tab) => {
+        updateTabSlider(tab.id, 0);
+        saveVolume(tab.id, 0);
+        await applyVolumeToTab(tab.id, 0);
+      })
     );
 
-    await setSession({ solo_tabId: String(clickedTabId), solo_preVolumes: preVolumes });
+    await setSession({
+      solo_tabId: String(clickedTabId),
+      solo_mutedTabIds: tabsToMute.map((tab) => tab.id),
+    });
     updateSoloHighlight(clickedTabId);
   }
 }
@@ -252,16 +244,13 @@ async function init() {
   // misses them. Fetch them explicitly so they remain visible in the popup.
   const soloTabId = sessionData.solo_tabId ?? null;
   if (soloTabId) {
-    const preSoloVolumes = sessionData.solo_preVolumes ?? {};
-    const mutedTabIds = Object.keys(preSoloVolumes)
-      .map(Number)
-      .filter((id) => !allTabs.some((t) => t.id === id));
+    const storedMutedIds = (sessionData.solo_mutedTabIds ?? []).filter(
+      (id) => !allTabs.some((t) => t.id === id)
+    );
 
     const mutedTabs = (
       await Promise.all(
-        mutedTabIds.map((id) =>
-          chrome.tabs.get(id).catch(() => null)
-        )
+        storedMutedIds.map((id) => chrome.tabs.get(id).catch(() => null))
       )
     ).filter(Boolean);
 
@@ -280,7 +269,7 @@ async function init() {
 
   // If the soloed tab is no longer present at all, clear stale solo state.
   if (soloId && !allTabs.some((t) => String(t.id) === soloId)) {
-    await removeSession(["solo_tabId", "solo_preVolumes"]);
+    await removeSession(["solo_tabId", "solo_mutedTabIds"]);
     soloId = null;
   }
 
